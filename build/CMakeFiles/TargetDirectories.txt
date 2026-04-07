@@ -1,3 +1,0 @@
-/workspaces/SORInterviewPrep/build/CMakeFiles/SORInterviewPrep.dir
-/workspaces/SORInterviewPrep/build/CMakeFiles/edit_cache.dir
-/workspaces/SORInterviewPrep/build/CMakeFiles/rebuild_cache.dir
