@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/SORInterviewPrep.dir/src/main.cpp.o -o SORInterviewPrep 
