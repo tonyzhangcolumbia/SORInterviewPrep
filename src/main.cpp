@@ -5,44 +5,48 @@
 #include <cerrno>
 #include <string>
 #include <string_view>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <onload.h>
 
 int main() {
-    // Get the system's page size
-    long page_size = sysconf(_SC_PAGESIZE);
-    if (page_size == -1) {
-        std::cerr << "Failed to get page size: " << std::strerror(errno) << std::endl;
+ 
+
+    // Onload example: Create a TCP socket using Onload for high-performance networking
+    std::cout << "\n--- Onload Networking Example ---" << std::endl;
+
+    // Create an Onload-accelerated TCP socket
+    int sock = onload_socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == -1) {
+        std::cerr << "Failed to create Onload socket: " << std::strerror(errno) << std::endl;
+        std::cerr << "Note: Onload library may not be installed or configured." << std::endl;
         return 1;
     }
 
-    // Assume huge page size is 2MB (common default), but in practice, check /proc/meminfo
-    const size_t huge_page_size = 2 * 1024 * 1024; // 2MB
+    std::cout << "Successfully created Onload-accelerated TCP socket (fd: " << sock << ")." << std::endl;
 
-    // Allocate memory using huge pages
-    void* addr = mmap(nullptr, huge_page_size, PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+    // Set up sockaddr_in for binding (example: bind to any address on port 0 for demonstration)
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(0);  // Let system assign a port
 
-    if (addr == MAP_FAILED) {
-        std::cerr << "---Failed to allocate huge page memory: " << std::strerror(errno) << std::endl;
-        std::cerr << "---Note: Huge pages may need to be configured in the system." << std::endl;
+    // Bind the socket
+    if (onload_bind(sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == -1) {
+        std::cerr << "Failed to bind Onload socket: " << std::strerror(errno) << std::endl;
+        close(sock);
         return 1;
     }
 
-    std::cout << "!! Successfully allocated " << huge_page_size << " bytes using huge pages." << std::endl;
-    std::cout << "System page size: " << page_size << " bytes." << std::endl;
-
-    // Use the allocated memory with std::string_view
-    char* buffer = static_cast<char*>(addr);
-    std::string message = "Hello, Huge Pages in C++17!";
-    std::strncpy(buffer, message.c_str(), message.size() + 1);
-
-    std::cout << "Message stored in huge page memory: " << buffer << std::endl;
+    std::cout << "Successfully bound Onload socket." << std::endl;
 
     // Clean up
-    if (munmap(addr, huge_page_size) == -1) {
-        std::cerr << "Failed to unmap memory: " << std::strerror(errno) << std::endl;
+    if (close(sock) == -1) {
+        std::cerr << "Failed to close socket: " << std::strerror(errno) << std::endl;
         return 1;
     }
 
-    std::cout << "Memory deallocated successfully." << std::endl;
+    std::cout << "Onload socket closed successfully." << std::endl;
+
     return 0;
 }
