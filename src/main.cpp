@@ -36,6 +36,39 @@ int main() {
     }
     std::cout << "Successfully bound Onload socket." << std::endl;
 
-    
+    // 1. Listen for incoming connections
+    if (onload_listen(sock, 5) == -1) {
+        std::cerr << "Listen failed: " << std::strerror(errno) << std::endl;
+        close(sock);
+        return 1;
+    }
+
+    std::cout << "Waiting for a connection..." << std::endl;
+
+    // 2. Accept a connection
+    sockaddr_in client_addr{};
+    socklen_t client_len = sizeof(client_addr);
+    int client_sock = onload_accept(sock, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+
+    // 3. Receive Data
+    char buffer[1024];
+    ssize_t bytes_received = onload_recv(client_sock, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytes_received > 0) {
+        buffer[bytes_received] = '\0';
+        std::cout << "Received: " << buffer << std::endl;
+
+        // 4. Send Data back (Echo)
+        const char* response = "Message received!";
+        ssize_t bytes_sent = onload_send(client_sock, response, strlen(response), 0);
+        
+        if (bytes_sent == -1) {
+            std::cerr << "Send failed: " << std::strerror(errno) << std::endl;
+        }
+    } else if (bytes_received == 0) {
+        std::cout << "Client disconnected." << std::endl;
+    } else {
+        std::cerr << "Receive failed: " << std::strerror(errno) << std::endl;
+    }
     return 0;
 }
